@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Quantum Snakes & Ladders: Professional Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --v-low: #440154; --v-mid: #21918c; --v-high: #fde725; --v-super: #35b779; --snake: #ff4d4d;
+    --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
+  }
+  body { margin: 0; font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
+
+  /* NAVIGATION */
+  .nav-bar { display: flex; gap: 12px; margin-bottom: 40px; background: #fff; padding: 10px; border-radius: 100px; box-shadow: 0 4px 25px rgba(0,0,0,0.05); z-index: 100; }
+  .nav-btn { padding: 12px 35px; border: none; background: none; font-weight: 800; cursor: pointer; border-radius: 100px; color: #64748b; transition: 0.3s; font-size: 15px; }
+  .nav-btn.active { background: var(--v-mid); color: #fff; box-shadow: 0 8px 20px rgba(33, 145, 140, 0.3); }
+
+  .view { display: none; width: 100%; max-width: 1300px; gap: 30px; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+  .view.active { display: flex; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card { background: var(--card); border-radius: 48px; box-shadow: 0 20px 70px rgba(15, 23, 42, 0.08); border: 1px solid rgba(255,255,255,0.8); }
+  
+  /* GLOBAL GRADIENT TEXT */
+  .gradient-text { background: linear-gradient(135deg, var(--v-low) 0%, var(--v-mid) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  /* TAB 1: STORY */
+  .intro-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 60px; align-items: stretch; padding: 50px; }
+  .hero-title { margin: 0; font-size: 54px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; }
+  .hero-sub { font-size: 12px; font-weight: 800; color: #94a3b8; letter-spacing: 3px; text-transform: uppercase; margin: 15px 0 30px 0; }
+  .phase-card { background: #f8fafc; padding: 22px 25px; border-radius: 20px; border-left: 6px solid var(--v-mid); margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+
+  /* TAB 2: LIVE APP */
+  .app-layout { display: grid; grid-template-columns: 1fr 420px; gap: 30px; width: 100%; align-items: start; }
+  
+  /* Left Column: Board Chamber */
+  .observation-chamber { background: #fff; padding: 60px 40px; border-radius: 48px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
+  
+  /* Tightly controlled wrapper to gracefully clip snakes */
+  .grid-wrapper { position: relative; width: 560px; height: 560px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; margin: 0 auto; }
+  .board-container { position: relative; width: 512px; height: 512px; border-radius: 12px; background: #fff; border: 1px solid #f1f5f9; z-index: 10; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+  .grid { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; height: 100%; }
+  .cell { display: flex; flex-direction: column; justify-content: space-between; padding: 6px; font-size: 10px; font-weight: 800; border: 0.1px solid rgba(0,0,0,0.02); transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+  
+  .overlay-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
+
+  /* Right Column: Control Sidebar */
+  .control-sidebar { display: flex; flex-direction: column; gap: 20px; }
+  .sidebar-card { background: #fff; padding: 30px; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; }
+  .status-header { background: #0f172a; color: #fff; padding: 25px; border-radius: 24px; text-align: center; border-bottom: 6px solid var(--v-mid); }
+  .metric-footer { background: var(--v-low); color: #fff; padding: 25px; border-radius: 24px; display: flex; justify-content: space-around; text-align: center; }
+  .metric-footer span { display: block; font-size: 28px; font-weight: 800; color: var(--v-high); }
+
+  /* Hardware Chip Visual (Restored K6 Layout) */
+  .hardware-chip { background: #f8fafc; border-radius: 24px; padding: 25px 20px; border: 1px solid #e2e8f0; margin-bottom: 10px; }
+  .qubit-cluster { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+  .qubit-node { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; background: #fff; transition: 0.4s; }
+  .qubit-node.active { background: var(--v-mid); border-color: var(--v-mid); color: #fff; box-shadow: 0 0 15px rgba(33, 145, 140, 0.4); }
+
+  /* UI Elements */
+  button { padding: 16px; border: none; border-radius: 20px; font-weight: 800; cursor: pointer; transition: 0.2s; font-family: 'Outfit'; font-size: 15px; }
+  .btn-run { background: var(--v-mid); color: #fff; width: 100%; box-shadow: 0 8px 20px rgba(33, 145, 140, 0.2); }
+  .btn-step { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; width: 100%; }
+  input[type=range] { width: 100%; height: 6px; border-radius: 10px; accent-color: var(--v-low); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <button class="nav-btn active" onclick="switchTab('intro')">1. The Concept</button>
+  <button class="nav-btn" onclick="switchTab('app')">2. Live Simulation</button>
+</div>
+
+<div id="intro" class="view active">
+  <div class="card" style="width: 100%;">
+    <div class="intro-grid">
+      <div>
+        <h1 class="hero-title gradient-text">Quantum Snakes & Ladders</h1>
+        <div class="hero-sub">Visualising Grover's Algorithm</div>
+        
+        <p style="font-size: 17px; line-height: 1.6; color: #475569; margin-bottom: 30px;">
+          <strong>The Translation Gap:</strong> Traditional quantum computing is taught through abstract linear algebra, creating a steep barrier to entry. This project bridges that gap by reimagining a classical game as a physical probability landscape.
+        </p>
+
+        <div class="phase-card">
+          <strong style="color:var(--v-mid); text-transform:uppercase; font-size:11px; letter-spacing:1px;">1. The Quantum Counter</strong><br>
+          <span style="font-size: 14px; color: #475569; line-height: 1.5; display: block; margin-top: 8px;">Classically, you move one token at a time. Here, we use a 6-qubit register. Applying a Hadamard gate "shatters" this token into an equal superposition, experiencing all 64 squares simultaneously.</span>
+        </div>
+
+        <div class="phase-card" style="border-left-color: #fab005;">
+          <strong style="color:#fab005; text-transform:uppercase; font-size:11px; letter-spacing:1px;">2. The Magic Library Analogy</strong><br>
+          <span style="font-size: 14px; color: #475569; line-height: 1.5; display: block; margin-top: 8px;">Finding the winner classically takes 32 tries. Quantumly, we treat the board like a dark room. The <strong>Phase Oracle</strong> flips the mathematical sign of our target, tagging it without looking at it directly.</span>
+        </div>
+
+        <div class="phase-card" style="border-left-color: var(--v-low);">
+          <strong style="color:var(--v-low); text-transform:uppercase; font-size:11px; letter-spacing:1px;">3. Constructive Interference</strong><br>
+          <span style="font-size: 14px; color: #475569; line-height: 1.5; display: block; margin-top: 8px;">When we apply the Diffusion Operator, the "Ladders" act as hardware coupling. They steer the probability wave to cancel out in the wrong places (purple) and add up perfectly on the winner (yellow).</span>
+        </div>
+
+        <button class="btn-run" style="width: 100%; margin-top: 15px; font-size: 16px; padding: 20px;" onclick="switchTab('app')">Explore The Hilbert Space →</button>
+      </div>
+      
+      <div style="background: #0f172a; padding: 60px; border-radius: 40px; color: #fff; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+        <h4 style="color: var(--v-high); letter-spacing: 2px; text-transform: uppercase; font-size: 13px; margin-bottom: 40px;">Path Convergence Engine</h4>
+        <svg width="100%" height="280" viewBox="0 0 400 250">
+          <circle cx="40" cy="125" r="10" fill="var(--v-high)" />
+          <path d="M 50 125 L 150 50 M 50 125 L 150 125 M 50 125 L 150 200" stroke="#94a3b8" stroke-width="2" />
+          <path d="M 160 50 Q 250 125 340 125 M 160 125 L 340 125 M 160 200 Q 250 125 340 125" stroke="var(--v-mid)" stroke-width="2" fill="none" stroke-dasharray="8,8" />
+          <circle cx="350" cy="125" r="18" fill="var(--v-high)" />
+          <text x="325" y="90" fill="var(--v-high)" font-weight="800" font-size="14">WINNER!</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="view">
+  <div class="app-layout">
+    <div class="observation-chamber card">
+      <div style="margin-bottom: 30px; text-align: center;">
+        <h1 class="gradient-text" style="margin:0; font-size: 38px; font-weight: 800;">Quantum Snakes & Ladders</h1>
+        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 2px; margin-top: 5px; text-transform: uppercase;">6-Qubit Hilbert Space | Interactive Grover's Search Simulation</div>
+      </div>
+      
+      <div class="grid-wrapper">
+        <svg id="overlay" class="overlay-svg"></svg>
+        <div class="board-container">
+          <div id="grid" class="grid"></div>
+        </div>
+      </div>
+
+      <div style="width: 100%; max-width: 512px; margin-top: 35px;">
+        <div style="width: 100%; height: 8px; border-radius: 10px; background: linear-gradient(to right, var(--v-low), var(--v-mid), var(--v-super), var(--v-high));"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 9px; font-weight: 800; color: #94a3b8; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px;">
+          <span>Destructive Interference</span>
+          <span>Equal Superposition</span>
+          <span>Contructive Peak</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-sidebar">
+      <div class="status-header">
+        <div id="op-tag" style="color:var(--v-high); font-weight:800; letter-spacing:2px; text-transform:uppercase; font-size: 12px;">Initial Superposition</div>
+        <div id="op-desc" style="font-size: 14px; opacity: 0.8; margin-top: 8px;">Hadamard layer: All 64 paths active.</div>
+      </div>
+
+      <div class="hardware-chip">
+        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; text-align: center; text-transform: uppercase;">Hardware Topology (K6)</div>
+        <div style="display: flex; justify-content: center; margin: 15px 0;">
+          <svg id="k6-svg" width="120" height="120"></svg>
+        </div>
+        <div id="qubit-row" class="qubit-cluster"></div>
+      </div>
+
+      <div class="sidebar-card">
+        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; margin-bottom: 25px;">
+          <button id="play-btn" class="btn-run">Play Algorithm</button>
+          <button onclick="runStep()" class="btn-step">Step +1</button>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 8px;">
+            <span>Target Square (Oracle)</span><span id="target-ui" style="color:var(--v-mid)">43</span>
+          </div>
+          <input type="range" id="target-slider" min="1" max="64" value="43" oninput="updateTarget(this.value)">
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 8px;">
+            <span>Hardware Decoherence</span><span id="noise-ui" style="color:var(--snake)">0%</span>
+          </div>
+          <input type="range" id="noise-slider" min="0" max="80" value="0" oninput="document.getElementById('noise-ui').innerText=this.value+'%'">
+        </div>
+
+        <button onclick="resetApp()" class="btn-step" style="width:100%; margin-top:25px;">Reset Simulation</button>
+      </div>
+
+      <div class="metric-footer">
+        <div><small style="opacity:0.7; font-size: 10px; letter-spacing: 1px;">PROBABILITY</small><span id="prob-ui">1.6%</span></div>
+        <div><small style="opacity:0.7; font-size: 10px; letter-spacing: 1px;">ITERATIONS</small><span id="iter-ui">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const N = 64;
+  const CELL_PX = 64;
+  const ladders = [ {f:2, t:21}, {f:10, t:44}, {f:27, t:51} ];
+  // Restored clean snakes
+  const snakes = [ {f:42, dir:'T'}, {f:35, dir:'R'}, {f:14, dir:'L'} ]; 
+  
+  let amplitudes = new Array(N).fill(1/Math.sqrt(N)); 
+  let subStep = 0; 
+  let iterations = 0;
+  let timer = null;
+
+  function switchTab(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
+    if(id === 'app') { render(); setTimeout(() => { drawSnakes(); initK6(); }, 50); }
+  }
+
+  function getViridis(p, i) {
+    const target = parseInt(document.getElementById('target-slider').value) - 1;
+    const maxP = Math.max(...amplitudes.map(a => a*a));
+    const t = p / (maxP || 1);
+    if (iterations === 0 && subStep === 0) return 'var(--v-super)'; 
+    if (i !== target) {
+      const tx = target % 8, ty = Math.floor(target / 8);
+      const ix = i % 8, iy = Math.floor(i / 8);
+      const dist = Math.abs(tx - ix) + Math.abs(ty - iy);
+      const ripple = Math.sin(dist * 0.5 - (iterations * 0.6)) * 0.02;
+      const adjustedT = Math.max(0, t + ripple);
+      return adjustedT < 0.12 ? 'var(--v-low)' : 'var(--v-mid)';
+    }
+    return 'var(--v-high)'; 
+  }
+
+  function render() {
+    const grid = document.getElementById('grid');
+    const target = parseInt(document.getElementById('target-slider').value) - 1;
+    grid.innerHTML = '';
+    amplitudes.forEach((a, i) => {
+      const p = a * a;
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const row = Math.floor(i / 8);
+      cell.style.order = (7-row)*8 + (row % 2 === 0 ? (i%8) : (7-(i%8)));
+      const bg = getViridis(p, i);
+      cell.style.background = bg;
+      cell.style.color = (bg === 'var(--v-low)') ? '#ffffff' : '#000000';
+      cell.innerHTML = `<span>${i+1}</span><span style="opacity:0.3; font-size:7px;">${i.toString(2).padStart(6,'0')}</span>`;
+      if(subStep === 1 && i === target) cell.style.boxShadow = "inset 0 0 0 5px var(--v-high)";
+      grid.appendChild(cell);
+    });
+    
+    const qRow = document.getElementById('qubit-row');
+    qRow.innerHTML = '';
+    target.toString(2).padStart(6,'0').split('').forEach((bit, i) => {
+      const q = document.createElement('div');
+      q.className = `qubit-node ${bit === '1' ? 'active' : ''}`;
+      q.textContent = `Q${i}`;
+      qRow.appendChild(q);
+    });
+    
+    document.getElementById('prob-ui').textContent = (amplitudes[target] ** 2 * 100).toFixed(1) + "%";
+    document.getElementById('iter-ui').textContent = iterations;
+  }
+
+  function runStep() {
+    const target = parseInt(document.getElementById('target-slider').value) - 1;
+    const noise = parseInt(document.getElementById('noise-slider').value) / 100;
+    if (subStep === 0) {
+      amplitudes[target] *= -1; 
+      document.getElementById('op-tag').innerText = "Phase Oracle";
+      document.getElementById('op-desc').innerText = "Target marked by phase inversion.";
+      subStep = 1;
+    } else {
+      const mean = amplitudes.reduce((s, a) => s + a, 0) / N;
+      amplitudes = amplitudes.map((a, i) => {
+        let newVal = 2 * mean - a;
+        if (i !== target) newVal *= (0.97 + Math.random() * 0.06);
+        return newVal;
+      });
+      if (noise > 0) {
+        amplitudes = amplitudes.map(a => a * (1 - noise));
+        const norm = Math.sqrt(amplitudes.reduce((s, a) => s + a*a, 0));
+        amplitudes = amplitudes.map(a => a / norm);
+      }
+      iterations++;
+      document.getElementById('op-tag').innerText = "Diffusion Operator";
+      document.getElementById('op-desc').innerText = "Constructive interference achieved.";
+      subStep = 0;
+    }
+    render();
+  }
+
+  function initK6() {
+    const svg = document.getElementById('k6-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+    const nodes = [];
+    for(let i=0; i<6; i++) {
+      const a = (i/6) * Math.PI * 2;
+      nodes.push({ x: 60 + Math.cos(a)*45, y: 60 + Math.sin(a)*45 });
+    }
+    nodes.forEach((n1, i) => {
+      nodes.forEach((n2, j) => {
+        if(i < j) {
+          const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          l.setAttribute("x1", n1.x); l.setAttribute("y1", n1.y);
+          l.setAttribute("x2", n2.x); l.setAttribute("y2", n2.y);
+          l.setAttribute("stroke", "var(--v-mid)"); l.setAttribute("stroke-width", "0.5");
+          l.setAttribute("opacity", "0.4");
+          svg.appendChild(l);
+        }
+      });
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", n1.x); c.setAttribute("cy", n1.y); c.setAttribute("r", "5");
+      c.setAttribute("fill", "#0f172a");
+      svg.appendChild(c);
+    });
+  }
+
+  function drawSnakes() {
+    const svg = document.getElementById('overlay');
+    svg.innerHTML = '';
+    // The wrapper is 560x560. The board is 512x512 centered. Offset is exactly 24.
+    const offset = 24; 
+
+    const getPos = (idx) => {
+      const row = Math.floor(idx / 8); const col = idx % 8;
+      const x = (row % 2 === 0 ? col : (7-col)) * CELL_PX + 32 + offset;
+      const y = (7-row) * CELL_PX + 32 + offset;
+      return {x, y};
+    };
+
+    ladders.forEach(l => {
+      const s = getPos(l.f-1); const e = getPos(l.t-1);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `M ${s.x} ${s.y} L ${e.x} ${e.y}`);
+      path.setAttribute("stroke", "var(--v-mid)"); path.setAttribute("stroke-width", "4");
+      path.setAttribute("stroke-dasharray", "6,6"); path.setAttribute("fill", "none");
+      svg.appendChild(path);
+    });
+
+    snakes.forEach(sn => {
+      const s = getPos(sn.f-1);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      
+      // Tightly controlled exits into the 24px padding area
+      let ex, ey, cx, cy;
+      if (sn.dir === 'T') { ex = s.x - 30; ey = -10; cx = s.x; cy = s.y - 80; }
+      else if (sn.dir === 'R') { ex = 570; ey = s.y + 30; cx = s.x + 80; cy = s.y; }
+      else if (sn.dir === 'L') { ex = -10; ey = s.y - 30; cx = s.x - 80; cy = s.y; }
+
+      path.setAttribute("d", `M ${s.x} ${s.y} Q ${cx} ${cy} ${ex} ${ey}`);
+      path.setAttribute("stroke", "url(#snakeGrad)"); 
+      path.setAttribute("stroke-width", "5");
+      path.setAttribute("fill", "none"); 
+      path.setAttribute("stroke-linecap", "round");
+      svg.appendChild(path);
+    });
+
+    // Clean gradient fade for the snakes
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    defs.innerHTML = `<linearGradient id="snakeGrad"><stop offset="0%" stop-color="var(--snake)" stop-opacity="0.8"/><stop offset="100%" stop-color="var(--snake)" stop-opacity="0"/></linearGradient>`;
+    svg.appendChild(defs);
+  }
+
+  document.getElementById('play-btn').onclick = function() {
+    if(timer) { clearInterval(timer); timer = null; this.innerText = "Play Algorithm"; }
+    else { timer = setInterval(runStep, 1000); this.innerText = "Pause"; }
+  };
+
+  function updateTarget(v) { document.getElementById('target-ui').innerText = v; resetApp(); }
+  function resetApp() {
+    if(timer) { clearInterval(timer); timer = null; document.getElementById('play-btn').innerText = "Play Algorithm"; }
+    amplitudes = new Array(N).fill(1/Math.sqrt(N)); iterations = 0; subStep = 0; render(); drawSnakes();
+    document.getElementById('op-tag').innerText = "Initial Superposition";
+    document.getElementById('op-desc').innerText = "Hadamard layer: All 64 paths active.";
+  }
+
+  window.onload = () => { render(); drawSnakes(); initK6(); };
+</script>
+</body>
+</html>
